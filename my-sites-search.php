@@ -20,6 +20,28 @@ add_action( 'wp_enqueue_scripts',    'mss_enqueue_scripts' );
 add_action( 'admin_enqueue_scripts', 'mss_enqueue_scripts' );
 
 /**
+ * Determine if it's safe to show the admin bar changes
+ *
+ * @return bool
+ */
+function mss_is_enabled() {
+	global $wp_admin_bar;
+
+	if ( ! is_object( $wp_admin_bar ) ) {
+		return false;
+	}
+
+	$total_users_sites = count( $wp_admin_bar->user->blogs );
+	$show_if_gt        = apply_filters( 'mms_show_search_minimum_sites', 10 );
+
+	if ( ! is_admin_bar_showing() || $total_users_sites < $show_if_gt ) {
+		return false;
+	}
+
+	return true;
+}
+
+/**
  * Add search field menu item
  *
  * @param WP_Admin_Bar $wp_admin_bar
@@ -27,10 +49,7 @@ add_action( 'admin_enqueue_scripts', 'mss_enqueue_scripts' );
  */
 function mss_admin_bar_menu( $wp_admin_bar ) {
 
-	$total_users_sites = count( $wp_admin_bar->user->blogs );
-	$show_if_gt        = apply_filters( 'mms_show_search_minimum_sites', 10 );
-
-	if ( ! is_user_logged_in() || ( $total_users_sites < $show_if_gt ) ) {
+	if ( ! mss_is_enabled() ) {
 		return;
 	}
 
@@ -55,6 +74,11 @@ function mss_admin_bar_menu( $wp_admin_bar ) {
  * @return void
  */
 function mss_enqueue_styles() {
+
+	if ( ! mss_is_enabled() ) {
+		return;
+	}
+
 	ob_start();
 	?>
 #wp-admin-bar-my-sites-search.hide-if-no-js {
@@ -91,6 +115,11 @@ function mss_enqueue_styles() {
  * @return void
  */
 function mss_enqueue_scripts() {
+
+	if ( ! mss_is_enabled() ) {
+		return;
+	}
+
 	$script = <<<SCRIPT
 jQuery(document).ready( function($) {
 	$('#wp-admin-bar-my-sites-search.hide-if-no-js').show();
